@@ -16,7 +16,7 @@ This project implements a simple key-value store in Go, using the Redis Serializ
 
 ### Server
 
-- **Functionality**: Listens for TCP connections, handling incoming RESP commands and sending responses formatted in RESP.
+- **Functionality**: Listens for TCP connections, handling incoming RESP commands and sending responses formatted in RESP. Loads key-value store from disk if present.
 
 ### RESP Parser
 
@@ -28,7 +28,7 @@ This project implements a simple key-value store in Go, using the Redis Serializ
 
 ### Data Persistence in diskstore.go
 
-- **Functionality**: Manages saving and loading of the key-value store data from disk.
+- **Functionality**: Manages saving and loading of the key-value store data from disk. Run by default at startup
 
 ## Installation
 
