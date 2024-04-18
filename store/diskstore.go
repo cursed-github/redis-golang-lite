@@ -62,7 +62,7 @@ func saveToFile(data []byte) error {
 }
 
 func ReadFromDisk() error {
-	finalFilePath := "database.rdb"
+	finalFilePath := "datastore.rdb"
 
 	file, err := os.Open(finalFilePath)
 	if err!= nil {

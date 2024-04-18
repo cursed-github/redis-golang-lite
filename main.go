@@ -19,6 +19,7 @@ func handleRequest(conn net.Conn){
 		return 
 	}
 	// Process the payload
+	
 	fmt.Printf("Received payload: %+v\n", payload)
 	response:= store.ProcessRequest(payload)
 	
@@ -51,6 +52,11 @@ func main() {
         os.Exit(1)
     }
 	defer listner.Close()
+
+	err= store.ReadFromDisk()
+	if err!= nil {
+		fmt.Println("Error while retriving kvstore from disk", err.Error())
+	}
 
 	stopChan := make(chan os.Signal, 1)
 	signal.Notify(stopChan, os.Interrupt, syscall.SIGTERM)
