@@ -30,6 +30,10 @@ This project implements a simple key-value store in Go, using the Redis Serializ
 
 - **Functionality**: Manages saving and loading of the key-value store data from disk. Run by default at startup
 
+### loadtesting
+
+- **Functionality**: copypaste loadtesting.go and run the code in a seperate directory to load-test by creating 50 concurent connections and 5000 key-value pairs
+
 ## Installation
 
 Clone the repository and build the project:
