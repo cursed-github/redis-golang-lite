@@ -27,7 +27,7 @@ type Payload struct {
 	Error string
 	Integer int
 	BulkString string
-	Array []interface{}
+	Array []Payload
 	Type RESPType
 }
 
@@ -36,12 +36,9 @@ type Resp struct{
 	payload Payload
 }
 
-func readerCurrentValue(reader *bufio.Reader){
-	currValue, err := reader.Peek(1)
-	if err!=nil {
-		fmt.Println("error while peaking",err)
-	}
-	fmt.Println("current reader value",string(rune(currValue[0])))
+func (r *Resp) DeserializeResp(con net.Conn) (Payload, error){
+	reader := bufio.NewReader(con)
+	return r.parseString(reader)
 }
 
 func (r *Resp) parseString(reader *bufio.Reader) (Payload, error) {
@@ -68,6 +65,13 @@ func (r *Resp) parseString(reader *bufio.Reader) (Payload, error) {
 	default:
 		return Payload{}, fmt.Errorf("unknown RESP type prefix: %v", typeByte)
 	}
+}
+func readerCurrentValue(reader *bufio.Reader){
+	currValue, err := reader.Peek(1)
+	if err!=nil {
+		fmt.Println("error while peaking",err)
+	}
+	fmt.Println("current reader value",string(rune(currValue[0])))
 }
 
 func readTrimmedString(reader *bufio.Reader) (string, error) {
@@ -166,7 +170,7 @@ func(r *Resp) parseArrayString(reader *bufio.Reader)(Payload, error){
 		r.payload.Type = ArrayPrefix
 		return r.payload, nil
 	}
-	var array []interface{}
+	var array []Payload
 	for i:=0;i<lengthArray;i++ {
 		element, err := r.parseString(reader)
 		if err!= nil {
@@ -180,11 +184,64 @@ func(r *Resp) parseArrayString(reader *bufio.Reader)(Payload, error){
 	return r.payload, nil
 }
 
-func (r *Resp) SerializeResp() {
 
+
+
+func SerializeResp(payload Payload) (string){
+	switch payload.Type {
+	case SimpleStringPrefix:
+		return writeSimpleString(payload)
+	case ErrorPrefix:
+		return writeErrorString(payload)
+	case IntegerPrefix:
+		return writeIntegerString(payload)
+	case BulkStringPrefix:
+		return writeBulkString(payload)
+	case ArrayPrefix:
+		return writeArray(payload)
+	}
+	return ""
 }
 
-func (r *Resp) DeserializeResp(con net.Conn) (Payload, error){
-	reader := bufio.NewReader(con)
-	return r.parseString(reader)
+func writeSimpleString(payload Payload) (string){
+	var sb strings.Builder 
+	sb.WriteByte(byte(SimpleStringPrefix))
+	sb.WriteString(payload.SimpleString)
+	sb.WriteString("\r\n")
+	return sb.String()
+}
+
+func writeErrorString(payload Payload) (string) {
+	var sb strings.Builder 
+	sb.WriteByte(byte(ErrorPrefix))
+	sb.WriteString(payload.Error)
+	sb.WriteString("\r\n")
+	return sb.String()
+}
+func writeIntegerString(payload Payload) (string) {
+	var sb strings.Builder 
+	sb.WriteByte(byte(IntegerPrefix))
+	sb.WriteString(strconv.Itoa((payload.Integer)))
+	sb.WriteString("\r\n")
+	return sb.String()
+}
+func writeBulkString(payload Payload) (string) {
+	var sb strings.Builder 
+	sb.WriteByte(byte(BulkStringPrefix))
+	sb.WriteString(strconv.Itoa(len(payload.BulkString)))
+	sb.WriteString("\r\n")
+	sb.WriteString(payload.BulkString)
+	sb.WriteString("\r\n")
+	return sb.String()
+}
+func writeArray(payload Payload) (string) {
+	var sb strings.Builder 
+	sb.WriteByte(byte(ArrayPrefix))
+	sb.WriteString(strconv.Itoa(len(payload.Array)))
+
+	for i:=0;i<len(payload.Array);i++ {
+		sb.WriteString(SerializeResp(payload.Array[i]))
+	}
+
+	return sb.String()
 }

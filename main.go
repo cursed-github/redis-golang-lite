@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"kvstore/resp"
+	"kvstore/store"
 	"net"
 	"os"
 	"os/signal"
@@ -14,14 +15,29 @@ func handleRequest(conn net.Conn){
 	respParser := resp.Resp{}
 	payload, err:= respParser.DeserializeResp(conn)
 	if err != nil {
-		fmt.Println("Error parsing:", err)
+		processParsingError(err,conn)
 		return 
 	}
-
 	// Process the payload
 	fmt.Printf("Received payload: %+v\n", payload)
+	response:= store.ProcessRequest(payload)
+	
 
-	_, err = conn.Write([]byte("Received\n"))
+	_, err = conn.Write([]byte(response))
+	if err != nil {
+		fmt.Println("Error writing:", err)
+		return 
+	}
+}
+
+func processParsingError(err error, conn net.Conn) {
+	fmt.Println("Error parsing:", err)
+	responsePayload:= resp.Payload{
+		Error: "Error while parsing, check input",
+		Type: resp.ErrorPrefix,
+	}
+	responseString:= resp.SerializeResp(responsePayload)
+	_, err = conn.Write([]byte(responseString))
 	if err != nil {
 		fmt.Println("Error writing:", err)
 		return 
