@@ -44,6 +44,10 @@ func processPayload(payload resp.Payload) (resp.Payload) {
 		return exist(payload)
 	case "del":
 		return del(payload)	
+	case "save":
+		return save(payload)
+	case "config":
+		return SimpleStringResponse("OK CONGIG")		
 	}
 
 
@@ -72,12 +76,13 @@ func set(payload resp.Payload) resp.Payload {
 	key:= payload.Array[1].BulkString
 	value:= payload.Array[2].BulkString
 
-	if key=="" || value=="" {
+	if key=="key:__rand_int__" || value=="" {
 		return resp.Payload{
 			Error: "Incorrect Message Type, key or value empty",
 			Type: resp.ErrorPrefix,
 		}
 	}
+	fmt.Println("key value for redis-call",key, value)
 	var ttl *time.Time
 	if len(payload.Array)==5 {
 		var err error
@@ -135,7 +140,7 @@ func get(payload resp.Payload) resp.Payload{
 	if len(payload.Array) < 2 || payload.Array[1].BulkString == "" {
         return errorResponse("Problem with array or key is empty")
     }
-
+	fmt.Println("get erquest recived")
 	mutex.RLock()
 	defer mutex.RUnlock()
 
@@ -197,11 +202,12 @@ func del(payload resp.Payload) resp.Payload{
 	return IntegerResponse(count)
 }
 
-func save() resp.Payload {
-	err := WriteToDisk()
+func save(payload resp.Payload) resp.Payload {
+	err := WriteToDisk(payload)
 	if err!=nil {
 		return errorResponse("failure while saving data to disk, check logs")
 	}
+	return SimpleStringResponse("OK")
 }
 
 func errorResponse(message string) resp.Payload {

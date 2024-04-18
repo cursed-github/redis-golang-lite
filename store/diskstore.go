@@ -66,7 +66,7 @@ func ReadFromDisk() error {
 
 	file, err := os.Open(finalFilePath)
 	if err!= nil {
-		return errr
+		return err
 	}
 	mutex.Lock() // Lock the mutex since we are modifying the global map
     defer mutex.Unlock()
