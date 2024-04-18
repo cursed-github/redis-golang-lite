@@ -40,7 +40,12 @@ func processPayload(payload resp.Payload) (resp.Payload) {
 		return set(payload)
 	case "get":
 		return get(payload)	
+	case "exists":
+		return exist(payload)
+	case "del":
+		return del(payload)	
 	}
+
 
 	return errorResponse("Unsupported command")
 }
@@ -148,6 +153,57 @@ func get(payload resp.Payload) resp.Payload{
 	return errorResponse("Key does not exist")
 }
 
+
+func exist(payload resp.Payload) resp.Payload{
+	if len(payload.Array)<2 || payload.Array[1].BulkString==""{
+		return errorResponse("Error not enough keys to check for exist in input array")
+	}
+	var count int
+	mutex.RLock()
+	defer mutex.RUnlock()
+
+	for i:=1;i<len(payload.Array);i++{
+		key:= payload.Array[i].BulkString
+
+		if stringvalue,ok := stringMap[key]; ok {
+			if !stringvalue.ttl.IsZero() && time.Now().After(stringvalue.ttl){
+				mutex.Lock()
+				delete(stringMap,key)
+				mutex.Unlock()
+			} else {
+				count++
+			}
+		}
+	}
+	return IntegerResponse(count)
+}
+
+func del(payload resp.Payload) resp.Payload{
+	if len(payload.Array)<2 || payload.Array[1].BulkString==""{
+		return errorResponse("Error not enough keys to check for exist in input array")
+	}
+	var count int
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	for i:=1;i<len(payload.Array);i++{
+		key:= payload.Array[i].BulkString
+
+		if _,ok := stringMap[key]; ok {
+			delete(stringMap,key)
+			count++
+		}
+	}
+	return IntegerResponse(count)
+}
+
+func save() resp.Payload {
+	err := WriteToDisk()
+	if err!=nil {
+		return errorResponse("failure while saving data to disk, check logs")
+	}
+}
+
 func errorResponse(message string) resp.Payload {
     return resp.Payload{
         Error: message,
@@ -159,5 +215,12 @@ func SimpleStringResponse(message string) resp.Payload {
 	return resp.Payload{
 		SimpleString: message,
 		Type: resp.SimpleStringPrefix,
+	}
+}
+
+func IntegerResponse(message int) resp.Payload {
+	return resp.Payload{
+		Integer: message,
+		Type: resp.IntegerPrefix,
 	}
 }
